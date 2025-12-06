@@ -5,6 +5,8 @@ from django.db import connection
 import json
 from django.views.decorators.csrf import csrf_exempt
 from .models import Student
+from .models import Users
+from django.contrib.auth.hashers import make_password,check_password
 
 # Create your views here.
 def greet(request):
@@ -94,3 +96,55 @@ def addStudent(request):
 
 
     return JsonResponse({"error":"use post method"},status=400)
+
+
+
+
+# users
+@csrf_exempt
+def signUp(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            
+            # Create user
+            user = Users.objects.create(
+                username=data.get("username"),
+                email=data.get("email"),
+                password=make_password(data.get("password"))
+            )
+
+            # Serialize model into JSON-friendly dictionary
+            user_data = {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email
+            }
+
+            return JsonResponse({
+                "status": "success",
+                "message": "User created successfully",
+                "data": user_data
+            }, status=200)
+
+        except Exception as e:
+            # Return REAL error message to Postman
+            return JsonResponse({"status": "failed", "error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Use POST method only"}, status=400)
+
+
+# change the password
+
+@csrf_exempt
+def change_password(request):
+    if request.method=="PUT":
+        data=json.loads(request.body)
+        ref_id=data.get("id")
+        new_password=data.get("password")
+        exisiting_user=Users.objects.get(id=ref_id)
+        exisiting_user.password=make_password(new_password)
+        exisiting_user.save()
+        return JsonResponse({"status":"success","message":"change the password successfully","username":exisiting_user.username},status=200)
+    
+
